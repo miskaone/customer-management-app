@@ -1,2 +1,26 @@
 # This application uses standard Python libraries only
 # No external dependencies required
+# Main Dependencies
+fastapi>=0.95.0
+uvicorn>=0.22.0
+pydantic>=1.10.7
+starlette>=0.27.0
+jinja2>=3.1.2
+
+# For WebSocket/SSE Support
+sse-starlette>=1.6.1
+websockets>=11.0.3
+
+# Testing & Browser Automation
+playwright>=1.34.0
+
+# For file operations
+python-multipart>=0.0.6
+
+# Date/Time handling
+python-dateutil>=2.8.2
+
+# Development tools
+black>=23.3.0
+isort>=5.12.0
+flake8>=6.0.0
