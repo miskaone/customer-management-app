@@ -1,0 +1,26 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# Python files
+*.py text eol=lf
+
+# HTML files
+*.html text eol=lf
+
+# JavaScript files
+*.js text eol=lf
+
+# CSS files
+*.css text eol=lf
+
+# Declare files that will always have CRLF line endings on checkout
+*.bat text eol=crlf
+
+# Declare files that will always have LF line endings on checkout
+*.sh text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary

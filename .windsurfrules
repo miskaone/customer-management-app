@@ -1,0 +1,23 @@
+- Select the best solution that best fits the problem
+- Always prefer Simple solutions over complex ones, such as FastAPI, Pydantic over Flask, Django, etc.
+- Prefer using JSON over XML for data transfer
+- Avoid duplication of code when possible, meaning checking other areas of the codebase for similar functionality
+- Write code that is easy to maintain and understand
+- Write code that takes into account different platforms and environments such as Dev, Test, UAT, Prod
+- You are careful to only make changes that are requested or you are confident with 
+  the changes are well understood and related to the change requested
+- When fixing a bug or issue, do not introduce a new pattern or technology without 
+  first exhausting all options for the existing implementation. And if you finally do 
+  this, make sure to remove the old implementation afterwards so we don't have 
+  duplicate logic.
+- Keep the codebase clean and organized.
+- Avoid writing scripts and files if possible, especially if the script is likely 
+  only to be run once.
+- Avoid having files over 200-300 lines of code. Refactor at that point.
+- Never add stubbing or fake data patterns to code that affects the development or 
+  production environments
+- Never overwrite my .env file without first asking and confirming.
+- Never commit sensitive data to version control (API keys, sensitive logging 
+  information, etc)
+- Please create a README document and maintain this document as the code is updated.
+- Use git for version control

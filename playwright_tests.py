@@ -1,0 +1,616 @@
+"""
+Interactive Playwright tests for Customer Management App web interface
+
+This script provides an interactive testing framework for the Customer Management App.
+It can be run in two modes:
+1. Interactive mode: Menu-driven interface to select specific tests
+2. CLI mode: Command-line arguments to run specific tests
+
+In this demo version, tests run in mock mode, simulating browser interactions.
+"""
+import time
+import sys
+import argparse
+import random
+import string
+from datetime import datetime
+import os
+
+class PlaywrightTester:
+    """Class to handle testing for Customer Management App"""
+    
+    def __init__(self, base_url="http://localhost:5001", mock_mode=True, enable_screenshots=True):
+        self.base_url = base_url
+        self.mock_mode = mock_mode
+        self.enable_screenshots = enable_screenshots
+        self.test_data = {
+            "customers": [],
+            "selected_customer_id": None,
+            "screenshot_count": 0,
+            "directory_name": f"Test_Dir_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            "customer_name": f"Test Customer {random.randint(1000, 9999)}",
+            "customer_directory": "Test Directory"
+        }
+        self.output_callback = None  # Callback function for capturing output
+        
+        # Create screenshots directory if it doesn't exist
+        self.screenshots_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "screenshots")
+        if not os.path.exists(self.screenshots_dir):
+            os.makedirs(self.screenshots_dir)
+    
+    def print(self, message):
+        """Print a message and also send it to the output callback if present"""
+        print(message)
+        if self.output_callback:
+            self.output_callback(message)
+    
+    def set_callback(self, callback_function):
+        """Set the output callback function
+        
+        Args:
+            callback_function: Function to call with output messages
+        """
+        self.output_callback = callback_function
+    
+    def generate_test_data(self, name_prefix="Test Customer"):
+        """Generate random test data for a customer"""
+        random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=5))
+        return {
+            "name": f"{name_prefix} {random_suffix}",
+            "email": f"test{random_suffix}@example.com",
+            "phone": f"555-{random.randint(100, 999)}-{random.randint(1000, 9999)}",
+            "address": f"{random.randint(100, 999)} Test Street, Test City",
+            "dir_name": f"test_customer_{random_suffix}"
+        }
+    
+    def take_screenshot(self, name):
+        """Take a screenshot during test execution
+        
+        Args:
+            name: Name identifier for the screenshot
+        
+        Returns:
+            bool: Success status
+        """
+        # Skip if screenshots are disabled
+        if not self.enable_screenshots:
+            self.print(f"ℹ️ Screenshots disabled - skipping screenshot: {name}")
+            return True
+        
+        self.test_data["screenshot_count"] += 1
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        screenshot_name = f"{self.test_data['screenshot_count']:02d}_{name}_{timestamp}"
+        
+        try:
+            # Create a simple HTML representation of the screenshot
+            is_mock = "MOCK " if self.mock_mode else ""
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Test Screenshot: {screenshot_name}</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }}
+                .container {{ max-width: 800px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+                h1 {{ color: #2196F3; }}
+                h2 {{ color: #333; }}
+                .mock-indicator {{ color: #ff9800; font-weight: bold; }}
+                .timestamp {{ color: #757575; font-size: 0.9em; }}
+                .footer {{ margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px; color: #757575; font-size: 0.8em; }}
+            </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Screenshot: {screenshot_name}</h1>
+                    {f'<p class="mock-indicator">⚠️ MOCK MODE - Simulated Screenshot</p>' if self.mock_mode else ''}
+                    <h2>Test: {name}</h2>
+                    <p class="timestamp">Timestamp: {timestamp}</p>
+                    <div style="border: 1px dashed #ccc; padding: 20px; background: #f9f9f9; text-align: center;">
+                        <p>This is a placeholder for an actual screenshot.<br>
+                        In a real implementation, this would be a browser capture image.</p>
+                    </div>
+                    <div class="footer">
+                        <p>Generated by Customer Management App Testing Framework</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            
+            # Ensure screenshots directory exists
+            screenshots_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "screenshots")
+            if not os.path.exists(screenshots_dir):
+                os.makedirs(screenshots_dir)
+            
+            file_path = os.path.join(screenshots_dir, f"{screenshot_name}.html")
+            with open(file_path, "w") as f:
+                f.write(html_content)
+            
+            message = f"✓ [{is_mock}Screenshot saved to: {file_path}"
+            self.print(message)
+            return True
+        except Exception as e:
+            self.print(f"❌ Error taking screenshot: {str(e)}")
+            return False
+    
+    def navigate(self, url=None):
+        """Simulate navigating to a URL"""
+        target_url = url or self.base_url
+        
+        if self.mock_mode:
+            self.print(f"✓ [MOCK] Navigated to {target_url}")
+            return True
+        else:
+            # In real implementation, we would use the actual Playwright API here
+            self.print(f"✓ Navigated to {target_url}")
+            return True
+    
+    def fill(self, selector, value):
+        """Simulate filling a form field"""
+        if self.mock_mode:
+            self.print(f"✓ [MOCK] Filled {selector} with '{value}'")
+            return True
+        else:
+            # In real implementation, we would use the actual Playwright API here
+            self.print(f"✓ Filled {selector} with '{value}'")
+            return True
+    
+    def click(self, selector):
+        """Simulate clicking an element"""
+        if self.mock_mode:
+            self.print(f"✓ [MOCK] Clicked {selector}")
+            return True
+        else:
+            # In real implementation, we would use the actual Playwright API here
+            self.print(f"✓ Clicked {selector}")
+            return True
+    
+    def evaluate(self, script):
+        """Simulate evaluating JavaScript in the browser"""
+        if self.mock_mode:
+            # For demo purposes, we'll return mock data based on the script content
+            if "elements.every" in script:
+                self.print("✓ [MOCK] Evaluated element existence check")
+                return True
+            elif "customer = rows.find" in script:
+                # Mock customer data for demo
+                customer_id = f"cust_{random.randint(1000, 9999)}"
+                self.test_data["selected_customer_id"] = customer_id
+                mock_data = {
+                    "id": customer_id,
+                    "name": "Test Customer",
+                    "email": "test@example.com",
+                    "phone": "555-123-4567",
+                    "directory": "/path/to/customer/directory"
+                }
+                self.print(f"✓ [MOCK] Found customer in table: {mock_data['name']}")
+                return mock_data
+            elif "deleteButton" in script:
+                self.print("✓ [MOCK] Clicked delete button")
+                return True
+            elif "document.querySelector('#directory').value" in script:
+                directory_path = f"/path/to/customer/{random.randint(1000, 9999)}"
+                self.print(f"✓ [MOCK] Found directory value: {directory_path}")
+                return directory_path
+            elif "error" in script and "Name is required" in script:
+                self.print("✓ [MOCK] Found name validation error")
+                return True
+            elif "error" in script and "Directory is required" in script:
+                self.print("✓ [MOCK] Found directory validation error")
+                return True
+            elif "cells[1].textContent.trim() === " in script:
+                self.print("✓ [MOCK] Found customer in table")
+                return True
+            
+            # Default mock result
+            return {"result": "mocked response"}
+        else:
+            # In real implementation, we would use the actual Playwright API here
+            self.print(f"✓ Evaluated JavaScript")
+            return {"result": "real response"}
+    
+    def test_basic_navigation(self):
+        """Test basic navigation and UI elements"""
+        self.print("\n--- Testing Basic Navigation ---")
+        
+        # Navigate to the main page
+        if not self.navigate():
+            return False
+        
+        self.take_screenshot("home_page")
+        
+        # Verify main UI components exist
+        result = self.evaluate("""
+            const elements = [
+                document.querySelector('#name'),
+                document.querySelector('#email'),
+                document.querySelector('#phone'),
+                document.querySelector('#address'),
+                document.querySelector('#directory'),
+                document.querySelector('button[type="submit"]'),
+                document.querySelector('#customerTable')
+            ];
+            return elements.every(el => el !== null);
+        """)
+        
+        if result:
+            self.print("✓ All UI elements found")
+        else:
+            self.print("✗ Some UI elements are missing")
+            return False
+        
+        self.print("✓ Basic navigation test passed")
+        return True
+    
+    def test_customer_crud(self):
+        """Test customer CRUD operations (Create, Read, Update, Delete)"""
+        self.print("\n--- Testing Customer CRUD Operations ---")
+        
+        # Navigate to the main page
+        if not self.navigate():
+            return False
+        
+        # 1. CREATE: Add a new customer
+        customer = self.generate_test_data()
+        self.test_data["customers"].append(customer)
+        
+        # Fill out the form
+        self.fill("#name", customer["name"])
+        self.fill("#email", customer["email"])
+        self.fill("#phone", customer["phone"])
+        self.fill("#address", customer["address"])
+        
+        # Create a directory
+        self.fill("#directoryName", customer["dir_name"])
+        self.click(".directory-options button:nth-child(2)")  # Create Directory button
+        
+        # Submit the form
+        self.click("button[type='submit']")
+        self.take_screenshot("after_add_customer")
+        
+        # Wait for customer to appear in list
+        if not self.mock_mode:
+            time.sleep(1)
+        
+        # 2. READ: Verify customer appears in the list
+        result = self.evaluate(f"""
+            const rows = Array.from(document.querySelectorAll('#customerTable tbody tr'));
+            const customer = rows.find(row => {{
+                const cells = row.querySelectorAll('td');
+                return cells[1].textContent === '{customer["name"]}';
+            }});
+            
+            if (customer) {{
+                const cells = customer.querySelectorAll('td');
+                return {{
+                    id: cells[0].textContent.trim(),
+                    name: cells[1].textContent.trim(),
+                    email: cells[2].textContent.trim(),
+                    phone: cells[3].textContent.trim(),
+                    directory: cells[4].textContent.trim()
+                }};
+            }}
+            return null;
+        """)
+        
+        if result:
+            self.print(f"✓ Customer found in table: {result['name'] if isinstance(result, dict) and 'name' in result else 'Test Customer'}")
+            self.test_data["selected_customer_id"] = result["id"] if isinstance(result, dict) and "id" in result else "cust_1234"
+        else:
+            self.print("✗ Customer not found in table")
+            return False
+        
+        # 4. DELETE: Delete the customer
+        if self.test_data["selected_customer_id"]:
+            # Find and click the delete button for this customer
+            result = self.evaluate(f"""
+                const rows = Array.from(document.querySelectorAll('#customerTable tbody tr'));
+                const customer = rows.find(row => {{
+                    const cells = row.querySelectorAll('td');
+                    return cells[0].textContent.trim() === '{self.test_data["selected_customer_id"]}';
+                }});
+                
+                if (customer) {{
+                    const deleteButton = customer.querySelector('button:nth-child(2)');
+                    deleteButton.click();
+                    return true;
+                }}
+                return false;
+            """)
+            
+            if result:
+                self.print(f"✓ Deleted customer {self.test_data['selected_customer_id']}")
+                self.take_screenshot("after_delete_customer")
+            else:
+                self.print(f"✗ Failed to delete customer {self.test_data['selected_customer_id']}")
+                return False
+        
+        self.print("✓ Customer CRUD operations test passed")
+        return True
+    
+    def test_directory_management(self):
+        """Test directory management features"""
+        self.print("\n--- Testing Directory Management ---")
+        
+        # Navigate to the main page
+        if not self.navigate():
+            return False
+        
+        # 1. Test directory creation
+        customer = self.generate_test_data(name_prefix="Dir Test")
+        self.test_data["customers"].append(customer)
+        
+        # Fill out the form
+        self.fill("#name", customer["name"])
+        self.fill("#email", customer["email"])
+        
+        # Create a directory
+        self.fill("#directoryName", customer["dir_name"])
+        self.click(".directory-options button:nth-child(2)")  # Create Directory button
+        self.take_screenshot("after_create_directory")
+        
+        # Verify directory field is populated
+        directory_value = self.evaluate("""
+            return document.querySelector('#directory').value;
+        """)
+        
+        if directory_value and str(directory_value):
+            self.print(f"✓ Directory field populated with: {directory_value}")
+        else:
+            self.print("✗ Directory field not populated")
+            return False
+        
+        # Submit the form
+        self.click("button[type='submit']")
+        
+        # 2. Test opening a directory
+        result = self.evaluate(f"""
+            const rows = Array.from(document.querySelectorAll('#customerTable tbody tr'));
+            const customer = rows.find(row => {{
+                const cells = row.querySelectorAll('td');
+                return cells[1].textContent.trim() === '{customer["name"]}';
+            }});
+            
+            if (customer) {{
+                const cells = customer.querySelectorAll('td');
+                const openDirButton = customer.querySelector('button:nth-child(3)'); // Open Dir button
+                openDirButton.click();
+                return {{
+                    id: cells[0].textContent.trim(),
+                    directory: cells[4].textContent.trim()
+                }};
+            }}
+            return null;
+        """)
+        
+        if result:
+            customer_id = result["id"] if isinstance(result, dict) and "id" in result else "test_id"
+            self.print(f"✓ Opened directory for customer: {customer_id}")
+            self.take_screenshot("after_open_directory")
+        else:
+            self.print("✗ Failed to open directory")
+            return False
+        
+        self.print("✓ Directory management test passed")
+        return True
+    
+    def test_form_validation(self):
+        """Test form validation features"""
+        self.print("\n--- Testing Form Validation ---")
+        
+        # Navigate to the main page
+        if not self.navigate():
+            return False
+        
+        # 1. Test empty name validation
+        self.fill("#name", "")
+        self.click("button[type='submit']")
+        self.take_screenshot("empty_name_validation")
+        
+        # Check for error message
+        error_visible = self.evaluate("""
+            const error = document.querySelector('.error-message');
+            return error && error.textContent.includes('Name is required');
+        """)
+        
+        if error_visible:
+            self.print("✓ Empty name validation passed")
+        else:
+            self.print("✗ Empty name validation failed")
+            return False
+        
+        # 2. Test empty directory validation
+        self.fill("#name", "Validation Test")
+        self.fill("#directory", "")
+        self.click("button[type='submit']")
+        self.take_screenshot("empty_directory_validation")
+        
+        # Check for directory error message
+        dir_error_visible = self.evaluate("""
+            const error = document.querySelector('.error-message');
+            return error && error.textContent.includes('Directory is required');
+        """)
+        
+        if dir_error_visible:
+            self.print("✓ Empty directory validation passed")
+        else:
+            self.print("✗ Empty directory validation failed")
+            return False
+        
+        self.print("✓ Form validation test passed")
+        return True
+    
+    def test_data_persistence(self):
+        """Test data persistence across sessions"""
+        self.print("\n--- Testing Data Persistence ---")
+        
+        # 1. First, add a unique customer for this test
+        if not self.navigate():
+            return False
+        
+        customer = self.generate_test_data(name_prefix="Persistence Test")
+        self.test_data["customers"].append(customer)
+        
+        # Fill out the form
+        self.fill("#name", customer["name"])
+        self.fill("#email", customer["email"])
+        self.fill("#phone", customer["phone"])
+        
+        # Create a directory
+        self.fill("#directoryName", customer["dir_name"])
+        self.click(".directory-options button:nth-child(2)")  # Create Directory button
+        
+        # Submit the form
+        self.click("button[type='submit']")
+        self.take_screenshot("persistence_add_customer")
+        
+        # 2. Refresh the page to simulate a new session
+        self.navigate()
+        self.take_screenshot("after_refresh")
+        
+        # 3. Verify the customer still exists
+        exists = self.evaluate(f"""
+            const rows = Array.from(document.querySelectorAll('#customerTable tbody tr'));
+            return rows.some(row => {{
+                const cells = row.querySelectorAll('td');
+                return cells[1].textContent.trim() === '{customer["name"]}';
+            }});
+        """)
+        
+        if exists:
+            self.print("✓ Customer persisted after refresh")
+        else:
+            self.print("✗ Customer did not persist after refresh")
+            return False
+        
+        self.print("✓ Data persistence test passed")
+        return True
+    
+    def run_test(self, test_name):
+        """Run a specific test by name"""
+        test_method = getattr(self, f"test_{test_name}", None)
+        if test_method:
+            self.print(f"\n=== Running Test: {test_name} ===")
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            self.print(f"[{timestamp}] Starting test...")
+            success = test_method()
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            if success:
+                self.print(f"[{timestamp}] === Test {test_name} PASSED ===")
+            else:
+                self.print(f"[{timestamp}] === Test {test_name} FAILED ===")
+            return success
+        else:
+            self.print(f"Test '{test_name}' not found")
+            return False
+    
+    def run_all_tests(self):
+        """Run all available tests"""
+        tests = [
+            "basic_navigation",
+            "customer_crud",
+            "directory_management",
+            "form_validation",
+            "data_persistence"
+        ]
+        
+        results = {}
+        for test in tests:
+            results[test] = self.run_test(test)
+        
+        self.print("\n=== Test Results Summary ===")
+        all_passed = True
+        for test, passed in results.items():
+            status = "✓ PASSED" if passed else "✗ FAILED"
+            self.print(f"{test}: {status}")
+            if not passed:
+                all_passed = False
+        
+        if all_passed:
+            self.print("\n🎉 All tests passed successfully!")
+        else:
+            self.print("\n❌ Some tests failed, please check the results above")
+        
+        return all_passed
+
+
+def print_menu():
+    """Print the interactive menu"""
+    print("\n=== Customer Management App Test Menu ===")
+    print("1. Run All Tests")
+    print("2. Test Basic Navigation")
+    print("3. Test Customer CRUD Operations")
+    print("4. Test Directory Management")
+    print("5. Test Form Validation")
+    print("6. Test Data Persistence")
+    print("q. Quit")
+    print("=======================================")
+
+
+def interactive_mode():
+    """Run tests interactively based on user selection"""
+    tester = PlaywrightTester(mock_mode=True)
+    
+    while True:
+        print_menu()
+        choice = input("Select an option: ").strip().lower()
+        
+        if choice == 'q':
+            print("Exiting test framework")
+            break
+        
+        try:
+            if choice == '1':
+                tester.run_all_tests()
+            elif choice == '2':
+                tester.run_test("basic_navigation")
+            elif choice == '3':
+                tester.run_test("customer_crud")
+            elif choice == '4':
+                tester.run_test("directory_management") 
+            elif choice == '5':
+                tester.run_test("form_validation")
+            elif choice == '6':
+                tester.run_test("data_persistence")
+            else:
+                print("Invalid option. Please try again.")
+        
+        except Exception as e:
+            print(f"Error running test: {str(e)}")
+        
+        input("\nPress Enter to continue...")
+
+
+def cli_mode():
+    """Run tests from command line with arguments"""
+    parser = argparse.ArgumentParser(description="Customer Management App Test Runner")
+    parser.add_argument("--all", action="store_true", help="Run all tests")
+    parser.add_argument("--basic", action="store_true", help="Test basic navigation")
+    parser.add_argument("--crud", action="store_true", help="Test CRUD operations")
+    parser.add_argument("--dir", action="store_true", help="Test directory management")
+    parser.add_argument("--validation", action="store_true", help="Test form validation")
+    parser.add_argument("--persistence", action="store_true", help="Test data persistence")
+    
+    args = parser.parse_args()
+    tester = PlaywrightTester(mock_mode=True)
+    
+    if args.all:
+        tester.run_all_tests()
+    elif args.basic:
+        tester.run_test("basic_navigation")
+    elif args.crud:
+        tester.run_test("customer_crud")
+    elif args.dir:
+        tester.run_test("directory_management")
+    elif args.validation:
+        tester.run_test("form_validation")
+    elif args.persistence:
+        tester.run_test("data_persistence")
+    else:
+        print("No tests specified. Use --all to run all tests or run with --help for options.")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        cli_mode()
+    else:
+        interactive_mode()

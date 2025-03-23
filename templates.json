@@ -1,0 +1,53 @@
+[
+    {
+        "id": "default",
+        "name": "Default Template",
+        "description": "Basic folder structure for general cases",
+        "folders": [
+            "Documents",
+            "Images",
+            "Contracts",
+            "Correspondence",
+            "Notes"
+        ]
+    },
+    {
+        "id": "project",
+        "name": "Project Template",
+        "description": "Folder structure for project-based cases",
+        "folders": [
+            "Requirements",
+            "Designs",
+            "Source",
+            "Testing",
+            "Deliverables",
+            "Meetings"
+        ]
+    },
+    {
+        "id": "legal",
+        "name": "Legal Case Template",
+        "description": "Folder structure for legal cases",
+        "folders": [
+            "Pleadings",
+            "Discovery",
+            "Evidence",
+            "Research",
+            "Correspondence",
+            "Billing"
+        ]
+    },
+    {
+        "id": "technical",
+        "name": "Technical Template",
+        "description": "Specialized folder structure for technical cases",
+        "folders": [
+            "documentation",
+            "code",
+            "data",
+            "tests",
+            "logs",
+            "configs"
+        ]
+    }
+]
