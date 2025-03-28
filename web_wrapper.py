@@ -6,22 +6,19 @@ for testing with Playwright MCP server
 import json
 import threading
 import tkinter as tk
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
-from typing import Optional, List
+from typing import Optional
 from customer_manager import CustomerManager
 import os
-import sys
 import importlib.util
 from datetime import datetime
 import asyncio
 import starlette
-import random
+import secrets
 
 # Import the PlaywrightTester class from playwright_tests.py
 try:
@@ -341,16 +338,20 @@ TESTING_TEMPLATE = """
         <select id="testSelect">
             <option value="">Select a test...</option>
             <option value="basic_navigation">Basic Navigation</option>
-            <option value="add_customer">Add Customer</option>
-            <option value="edit_customer">Edit Customer</option>
-            <option value="delete_customer">Delete Customer</option>
-            <option value="search_customer">Search for Customer</option>
+            <option value="customer_crud">Customer CRUD Operations</option>
+            <option value="directory_management">Directory Management</option>
+            <option value="form_validation">Form Validation</option>
+            <option value="data_persistence">Data Persistence</option>
         </select>
         
         <div class="options-group">
             <div class="checkbox-container">
                 <input type="checkbox" id="enableScreenshots" checked>
                 <label for="enableScreenshots">Enable Screenshots</label>
+            </div>
+            <div class="checkbox-container">
+                <input type="checkbox" id="realMode" checked>
+                <label for="realMode">Real Browser Mode</label>
             </div>
         </div>
         
@@ -409,6 +410,7 @@ TESTING_TEMPLATE = """
         document.getElementById('runTestBtn').addEventListener('click', function() {
             var testName = document.getElementById('testSelect').value;
             var enableScreenshots = document.getElementById('enableScreenshots').checked;
+            var realMode = document.getElementById('realMode').checked;
             var statusContainer = document.getElementById('statusContainer');
             var eventsContainer = document.getElementById('eventsContainer');
             var events = document.getElementById('events');
@@ -437,7 +439,8 @@ TESTING_TEMPLATE = """
                 },
                 body: JSON.stringify({
                     test: testName,
-                    enable_screenshots: enableScreenshots
+                    enable_screenshots: enableScreenshots,
+                    real_mode: realMode
                 })
             })
             .then(function(response) {
@@ -680,29 +683,52 @@ async def serve_screenshot(filename: str):
     screenshots_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "screenshots")
     return FileResponse(os.path.join(screenshots_dir, filename))
 
+# Helper functions to reduce code duplication
+async def send_event(queue, message, event_type=None, event_data=None):
+    """Send a message to the queue with optional typed event"""
+    await queue.put({"message": message})
+    if event_type:
+        event = {"type": event_type}
+        if event_data:
+            event[event_type] = event_data
+        else:
+            event[event_type] = message
+        await queue.put(event)
+
+async def with_error_handling(queue, func, *args, **kwargs):
+    """Execute a function with standardized error handling"""
+    try:
+        return await func(*args, **kwargs)
+    except Exception as e:
+        error_message = f"Error: {str(e)}"
+        await send_event(queue, error_message, "error")
+        return None
+
 # Test-related models
 class TestRequest(BaseModel):
     test: str
     enable_screenshots: Optional[bool] = True
+    real_mode: Optional[bool] = False
 
 @app.post("/api/run-test")
 async def run_test(test_request: TestRequest):
     """API endpoint to run a test"""
     test_name = test_request.test
     enable_screenshots = test_request.enable_screenshots
+    real_mode = test_request.real_mode
     
     if not test_name:
         raise HTTPException(status_code=400, detail="Missing test name")
     
     # Generate a unique test ID
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    test_id = f"test_{timestamp}_{random.randint(100, 999)}"
+    test_id = f"test_{timestamp}_{secrets.randbelow(900) + 100}"
     
     # Initialize event queue for this test
     app_data['test_events'][test_id] = asyncio.Queue()
     
     # Start test in background task
-    asyncio.create_task(run_test_background(test_id, test_name, enable_screenshots))
+    asyncio.create_task(run_test_background(test_id, test_name, enable_screenshots, real_mode))
     
     return {
         "status": "started",
@@ -710,51 +736,48 @@ async def run_test(test_request: TestRequest):
         "test_id": test_id
     }
 
-async def run_test_background(test_id, test_name, enable_screenshots=True):
+async def run_test_background(test_id, test_name, enable_screenshots=True, real_mode=False):
     """Run a test in the background and publish events"""
     queue = app_data['test_events'][test_id]
     
     try:
-        # Initialize tester with screenshot preference
-        tester = PlaywrightTester(mock_mode=True, enable_screenshots=enable_screenshots)
+        # Initialize tester with screenshot preference and browser mode
+        tester = PlaywrightTester(mock_mode=not real_mode, enable_screenshots=enable_screenshots)
         
         # Set up event handler
         def event_callback(message):
-            asyncio.create_task(queue.put({"message": message}))
+            asyncio.create_task(send_event(queue, message))
         
         tester.set_callback(event_callback)
         
         # Run the test
-        await queue.put({"message": f"Starting test: {test_name}"})
-        await queue.put({"message": f"Screenshots {'enabled' if enable_screenshots else 'disabled'}"})
+        await send_event(queue, f"Starting test: {test_name}")
+        await send_event(queue, f"Screenshots {'enabled' if enable_screenshots else 'disabled'}")
+        await send_event(queue, f"Browser mode: {'real' if real_mode else 'mock'}")
         
-        if test_name == "basic_navigation":
-            result = tester.test_basic_navigation()
-        elif test_name == "add_customer":
-            result = tester.test_add_customer()
-        elif test_name == "edit_customer":
-            result = tester.test_edit_customer()
-        elif test_name == "delete_customer":
-            result = tester.test_delete_customer()
-        elif test_name == "search_customer":
-            result = tester.test_search_customer()
+        # Define test mapping
+        test_functions = {
+            "basic_navigation": tester.test_basic_navigation,
+            "customer_crud": tester.test_customer_crud,
+            "directory_management": tester.test_directory_management,
+            "form_validation": tester.test_form_validation,
+            "data_persistence": tester.test_data_persistence
+        }
+        
+        # Execute the selected test
+        if test_name in test_functions:
+            result = await with_error_handling(queue, test_functions[test_name])
         else:
-            await queue.put({"message": f"Unknown test: {test_name}"})
-            await queue.put({"type": "error", "error": f"Unknown test: {test_name}"})
+            await send_event(queue, f"Unknown test: {test_name}", "error")
             return
         
         # Report completion
         if result:
-            await queue.put({"message": f"Test completed successfully"})
-            await queue.put({"type": "complete", "result": "Test completed successfully"})
+            await send_event(queue, "Test completed successfully")
+            await send_event(queue, "Test completed successfully", "complete")
         else:
-            await queue.put({"message": f"Test failed"})
-            await queue.put({"type": "error", "error": "Test failed"})
-    
-    except Exception as e:
-        error_message = f"Error running test: {str(e)}"
-        await queue.put({"message": error_message})
-        await queue.put({"type": "error", "error": error_message})
+            await send_event(queue, "Test failed")
+            await send_event(queue, "Test failed", "error")
     
     finally:
         # Keep test events for a while before cleanup
@@ -969,7 +992,7 @@ async def open_customer_directory(customer_id: str):
 
 def run_fastapi():
     """Run the FastAPI app in a separate thread"""
-    uvicorn.run(app, host="127.0.0.1", port=5001)
+    uvicorn.run(app, host="127.0.0.1", port=5002)
 
 def main():
     """Main function to run both the web interface and Tkinter app"""
@@ -989,4 +1012,5 @@ def main():
     root.mainloop()
 
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=5002)

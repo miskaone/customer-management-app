@@ -1,11 +1,7 @@
-import os
-import sys
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
-from datetime import datetime
+from tkinter import ttk, messagebox
 
 # Import utility modules
-from utils import open_directory, load_json_file, save_json_file
 
 # Import operational modules
 from customer_operations import CustomerOperations
@@ -270,7 +266,6 @@ class CustomerManager:
         target_dropdown.pack(side='left', fill='x', expand=True)
         
         # Populate target dropdown
-        customer_options = []
         customer_ids = []
         customer_names = []
         
