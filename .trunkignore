@@ -1,0 +1,2 @@
+# Ignore generated screenshot files from testing
+screenshots/**
