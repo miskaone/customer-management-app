@@ -35,8 +35,12 @@ class DropdownManager:
             if template_names and not self.parent.selected_template_var.get():
                 self.parent.selected_template_var.set(template_names[0])
                 
-                # Update the description
-                self.parent.event_handler.on_template_selected(None)
+                # Update the description directly
+                first_template = self.get_selected_template()
+                if first_template:
+                    self.parent.template_desc_var.set(first_template.get("description", ""))
+                else:
+                    self.parent.template_desc_var.set("")
     
     def get_selected_template(self):
         """Get the currently selected template object"""

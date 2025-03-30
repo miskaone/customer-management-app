@@ -40,7 +40,7 @@ class FormManager:
             "phone": self.parent.phone_var.get().strip(),
             "address": self.parent.address_var.get().strip(),
             "notes": self.parent.notes_text.get("1.0", tk.END).strip(),
-            "directory": self.parent.dir_var.set().strip()
+            "directory": self.parent.dir_var.get().strip() # Changed set() to get()
         }
     
     def save_customer(self):
